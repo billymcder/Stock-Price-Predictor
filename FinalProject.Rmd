@@ -1,0 +1,63 @@
+---
+title: "Final Project"
+author: "Billy Mcdermott"
+date: "2023-11-16"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+https://finance.yahoo.com/quote/NVDA/history?p=NVDA
+
+I major in economics as well as actuarial science, so financial data has always been very interesting to me. When learning about random walks early in the semester, I noticed that a graph of a random walk looks very similar to a stock's price. Obviously the price of stocks is affected by many things and usually has a trend, but prices are still considered to be mostly unpredictable because of the idea that markets are efficient and a stock's price reflects all information available about the company. A random walk's equation is xt = x(t-1) + wt with wt being white noise. In the case of a stock, xt would be the price of the stock today, x(t-1) being the price the day prior, and the wt white noise variable could be considered to be the new information that all market participants are given on any day which would impact the stock price from yesterday. For this analysis I used a relevant company, NVIDIA, which has been very actively moving because of its involvement in AI. In this analysis, I will analyze NVIDIA's stock price using arima models and forecast it's stock price using two select models.
+
+```{r, echo = FALSE, results = FALSE, include = FALSE}
+library("astsa")
+library("quantmod")
+getSymbols("NVDA", from = "2022-11-27", to = "2023-11-11", auto.assign = TRUE)
+close <- NVDA$NVDA.Close
+```
+
+First inspecting the ACF and PACF of the stock's price, we can see that the ACF tails off and PACF cuts off at lag one suggesting it is an AR(1) model. I also included a graph of simply a random walk to show that the price of the stock look similar.
+
+```{r, echo = FALSE, results = FALSE}
+chart_Series(close)
+plot(arima.sim(model = list(order=c(0,1,0)),n=1000), ylab="Random Walk")
+acf2(close)
+```
+
+After differencing the data, we can start to see more how this data behaves like a random walk as the differenced data looks purely like white noise. The ACF and PACF have no values that are relevant very similar to a white noise model.
+
+```{r, echo = FALSE, results = FALSE}
+plot(diff(close))
+acf2(diff(close))
+```
+
+Inspecting the residuals of this data, both look good with the no autocorrelation in the residuals and residuals being normally distributed with some positive outliers. ALso, p values of residuals look good too in both models. In the AR(1) model, the coeffecient is valued less than 1 as well. The AIC and BIC slightly prefer the white noise model, however the AR(1) model is what I have chosen as the better model as it serves as a better predictor because the white noise model is completely random.
+
+```{r, echo = FALSE, results = FALSE}
+sarima(close, 1,0,0)
+sarima(close, 0,1,0)
+```
+
+When forecasting the data, the forecasted values go in different directions for each model. This is the white noise model, which suggests the stock price will increase.
+
+```{r, echo = FALSE, results = FALSE}
+sarima.for(close, 24,0,1,0)
+```
+
+This is the AR(1) model which suggests the price will decrease.
+
+```{r, echo = FALSE, results = FALSE}
+sarima.for(close, 24,1,0,0)
+```
+
+With the predictions of the white noise model, the predictions are completely random, so the reason for its prediction of an increase in stock price could just be because the stock had previously increased, but it is still completely random. For the AR(1) model, the fact that it predicts that it will decrease suggests that the coeffecient r in the equation xt = rx(t-1) + wt for an AR(1) model would be less than 1. This makes sense as it agrees with the calculation from the residuals even though it is very close to 1. 
+
+When inspecting the periodogram of the data, there is a large spike just at the beginning of the data and a few smaller spikes just after 0. The large spike can be ignored as it just says the data has an uptrend. The two other most prominent spikes being around 0.01 and 0.04. obtaining the time values for these being 100 and 25 respectively. When looking back at the stock's price, looking at the peaks, there seems to be a peak every 100 days and 25 days which would make sense with the periodogram.
+
+```{r, echo = FALSE, results = FALSE}
+nvda <- mvspec(close)
+```
+
+Overall, the AR(1) model fit the data better and offered a better forecast. These models are still very similar because the AR(1) model has a coeffecient very clsose to 1, but offers a better forecast because it is less random compared to the white noise model. This is all very interesting as the common consensus from people is that stock prices can be predicted using things like technical analysis and fundamental analysis. However, reviewing the price of NVIDIA's stock shows that the change in price is mostly random.
